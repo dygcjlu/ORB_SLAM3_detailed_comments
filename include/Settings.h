@@ -121,6 +121,7 @@ namespace ORB_SLAM3 {
         cv::Mat M2l() {return M2l_;}
         cv::Mat M1r() {return M1r_;}
         cv::Mat M2r() {return M2r_;}
+        cv::Mat GetQ(){return m_Q;}
 
     private:
         template<typename T>
@@ -183,6 +184,7 @@ namespace ORB_SLAM3 {
          */
         cv::Mat M1l_, M2l_;
         cv::Mat M1r_, M2r_;
+        cv::Mat m_Q;
 
         /*
          * Inertial stuff

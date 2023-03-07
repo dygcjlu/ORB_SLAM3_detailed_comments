@@ -9,8 +9,21 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O3")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" )
+   MESSAGE("Debug")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O0 -g -march=native ")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O0 -g -march=native")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O0 -g")
+   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O0 -g")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
+   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
+else()
+   MESSAGE("release")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O3")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3")
+endif()
+
+
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
@@ -18,7 +31,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
+set(USING_CXX14 ON)
+if(USING_CXX14)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+    add_definitions(-DCOMPILEDWITHC11)
+    message(STATUS "Using flag -std=c++14.")
+elseif(COMPILER_SUPPORTS_CXX11)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
    add_definitions(-DCOMPILEDWITHC11)
    message(STATUS "Using flag -std=c++11.")
@@ -34,17 +52,23 @@ LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
 # 要保证整个工程的opencv版本一致，包括dbow，源码以及ros相关的
 # 3 4 都可以正常运行
-find_package(OpenCV 3.2)
-   if(NOT OpenCV_FOUND)
-      message(FATAL_ERROR "OpenCV > 3.2 not found.")
-   endif()
+set(OpenCV_DIR "/home/xxd/dyg/opencv/opencv4_5/build_r_nofree/install/lib/cmake/opencv4")
+find_package(OpenCV 4.0)
+if(NOT OpenCV_FOUND)
+  find_package(OpenCV 3.0)
+  if(NOT OpenCV_FOUND)
+    message(FATAL_ERROR "OpenCV > 3.0 not found.")
+  endif()
+endif()
 
 MESSAGE("OPENCV VERSION:")
 MESSAGE(${OpenCV_VERSION})
 
 find_package(Eigen3 3.1.0 REQUIRED)
+set(Pangolin_DIR /home/xxd/dyg/slam/slambook2/3rdparty/Pangolin/build/install/lib/cmake/Pangolin)
 find_package(Pangolin REQUIRED)
 find_package(realsense2)
+set(PCL_DIR /media/xxd/Data2/3rd_party/pcl/build_vtk7/install/share/pcl-1.12)
 find_package(PCL 1.12 REQUIRED)
 
 include_directories(
@@ -92,6 +116,7 @@ src/TwoViewReconstruction.cc
 src/Config.cc
 src/Settings.cc
 src/PointCloudMapping.cc
+src/StereoMatch.cc
 include/System.h
 include/Tracking.h
 include/LocalMapping.h

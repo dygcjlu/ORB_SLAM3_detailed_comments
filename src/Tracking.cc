@@ -1528,6 +1528,11 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     cv::Mat imGrayRight = imRectRight;
     mImRight = imRectRight;
 
+    //for dense map, deng log
+    mimLeft = imRectLeft;
+    mimRight = imRectRight;
+    //
+
     // step 1 ：将RGB或RGBA图像转为灰度图像
     if(mImGray.channels()==3)
     {
@@ -2719,6 +2724,9 @@ void Tracking::StereoInitialization()
         // 将当前帧构造为初始关键帧
         KeyFrame* pKFini = new KeyFrame(mCurrentFrame,mpAtlas->GetCurrentMap(),mpKeyFrameDB);
 
+        pKFini->imLeftRgb = mimLeft.clone();
+        pKFini->imRightRgb = mimRight.clone();
+        pKFini->imDepth = mImDepth.clone();
         // Insert KeyFrame in the map
         // 在地图中添加该初始关键帧
         mpAtlas->AddKeyFrame(pKFini);
@@ -2799,6 +2807,8 @@ void Tracking::StereoInitialization()
 
         // 追踪成功
         mState=OK;
+
+       
     }
 }
 

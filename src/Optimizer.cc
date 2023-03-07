@@ -2838,6 +2838,8 @@ void Optimizer::BundleAdjustment(
     vbNotIncludedMP.resize(vpMP.size());
 
     Map *pMap = vpKFs[0]->GetMap();
+
+    std::cout<<"nLoopKF:" << nLoopKF <<"map origin kf id:"<<pMap->GetOriginKF()->mnId<<std::endl;
     // Step 1 初始化g2o优化器
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolver_6_3::LinearSolverType *linearSolver;
@@ -2849,7 +2851,8 @@ void Optimizer::BundleAdjustment(
     // 使用LM算法优化
     g2o::OptimizationAlgorithmLevenberg *solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
     optimizer.setAlgorithm(solver);
-    optimizer.setVerbose(false);
+    //optimizer.setVerbose(false);
+    optimizer.setVerbose(true);
     // 如果这个时候外部请求终止，那就结束
     // 注意这句执行之后，外部再请求结束BA，就结束不了了
     if (pbStopFlag)
@@ -3093,7 +3096,7 @@ void Optimizer::BundleAdjustment(
 
     // Optimize!
     // Step 4：开始优化
-    optimizer.setVerbose(false);
+    optimizer.setVerbose(true);
     optimizer.initializeOptimization();
     optimizer.optimize(nIterations);
     Verbose::PrintMess("BA: End of the optimization", Verbose::VERBOSITY_NORMAL);
@@ -3103,6 +3106,7 @@ void Optimizer::BundleAdjustment(
 
     // Step 5.1 Keyframes
     // 遍历所有的关键帧
+    //bool bIsFinalGBA = true;
     for (size_t i = 0; i < vpKFs.size(); i++)
     {
         KeyFrame *pKF = vpKFs[i];

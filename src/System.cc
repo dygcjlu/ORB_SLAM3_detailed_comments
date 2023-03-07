@@ -33,6 +33,8 @@
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 
+#include "Optimizer.h"
+
 namespace ORB_SLAM3
 {
 
@@ -61,6 +63,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     "under certain conditions. See LICENSE.txt." << endl << endl;
 
     cout << "Input sensor was set to: ";
+
+   
 
     if(mSensor==MONOCULAR)
         cout << "Monocular" << endl;             // 单目
@@ -262,6 +266,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         float thresh = fsSettings["thresh"];
 
         mpPointCloudMapping = new PointCloudMapping(resolution, meank, thresh);
+        ComputeRectfiedParam(strSettingsFile);
+
         mpLocalMapper->SetPointCloudMapper(mpPointCloudMapping);
         mpLoopCloser->SetPointCloudMapper(mpPointCloudMapping);
         mpTracker->SetPointCloudMapper(mpPointCloudMapping);
@@ -283,7 +289,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     // Fix verbosity
     // 打印输出中间的信息，设置为安静模式
-    Verbose::SetTh(Verbose::VERBOSITY_QUIET);
+    //Verbose::SetTh(Verbose::VERBOSITY_QUIET);
+    Verbose::SetTh(Verbose::VERBOSITY_NORMAL);
 
 }
 
@@ -308,10 +315,25 @@ Sophus::SE3f System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, 
     else if(settings_ && settings_->needToResize()){
         cv::resize(imLeft,imLeftToFeed,settings_->newImSize());
         cv::resize(imRight,imRightToFeed,settings_->newImSize());
+        std::cout<<"resize"<<std::endl;
+    }
+    else if (!m_M1l.empty() && !m_M1r.empty())
+    {
+        cv::remap(              //重映射，就是把一幅图像中某位置的像素放置到另一个图片指定位置的过程。
+            imLeft,             //输入图像
+            imLeftToFeed,         //输出图像
+            m_M1l,                //第一个映射矩阵表
+            m_M2l,                //第二个映射矩阵
+            cv::INTER_LINEAR);
+        // 右目
+        cv::remap(imRight,imRightToFeed,m_M1r,m_M2r,cv::INTER_LINEAR);
+
     }
     else{
         imLeftToFeed = imLeft.clone();
         imRightToFeed = imRight.clone();
+ 
+        //std::cout<<"no resize and no rectify"<<std::endl;
     }
 
     // Check mode change
@@ -1634,6 +1656,131 @@ string System::CalculateCheckSum(string filename, int type)
 
     return checksum;
 }
+
+int System::SetRectfiedQ()
+{
+    mpPointCloudMapping->SetRectifiedQ(settings_->GetQ());  
+    return 0; 
+}
+
+int System::ComputeRectfiedParam(std::string strParamFile)
+{
+    cv::FileStorage fsSettings(
+            strParamFile,                    // path_to_settings
+            cv::FileStorage::READ);     // 以只读方式打开
+    if(!fsSettings.isOpened())
+    {
+        cerr << "ERROR: Wrong path to settings" << endl;
+        return -1;
+    }
+    cout << "open setting file success!" << endl;
+
+    cv::Mat Q;
+    fsSettings["Custom.Q"] >> Q;
+    if(!Q.empty())
+    {
+         mpPointCloudMapping->SetRectifiedQ(Q);
+         return 0;
+    }
+
+    cv::Mat R, T, K_l, K_r, P_l, P_r, R_l, R_r, D_l, D_r;
+    //相机内参
+    fsSettings["LEFT.K"] >> K_l;
+    fsSettings["RIGHT.K"] >> K_r;
+    //TODO 目测是经过双目立体矫正后的投影矩阵
+    fsSettings["LEFT.P"] >> P_l;
+    fsSettings["RIGHT.P"] >> P_r;
+
+    // 修正变换矩阵,见下面的函数调用
+    fsSettings["LEFT.R"] >> R_l;
+    fsSettings["RIGHT.R"] >> R_r;
+
+    //去畸变参数
+    fsSettings["LEFT.D"] >> D_l;
+    fsSettings["RIGHT.D"] >> D_r;
+
+    //图像尺寸
+    int rows_l = fsSettings["LEFT.height"];
+    int cols_l = fsSettings["LEFT.width"];
+    int rows_r = fsSettings["RIGHT.height"];
+    int cols_r = fsSettings["RIGHT.width"];
+
+    
+
+
+
+    //参数合法性检查(不为空就行)
+    if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
+            rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0 )
+    {
+        cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
+        return -1;
+    }
+
+     fsSettings["Custom.R"] >> R;
+        fsSettings["Custom.T"] >> T;
+
+        if(R.empty() || T.empty())
+        {
+            cerr << "ERROR: R.empty() || T.empty()!" << endl;
+            return -1;
+        }
+
+         cv::Size img_size;
+        img_size.width = cols_l;
+        img_size.height = rows_l;
+
+          cv::stereoRectify(K_l, D_l, K_r, D_r, img_size,
+                        R, T,
+                        R_l, R_r, P_l, P_r, Q,
+                        cv::CALIB_ZERO_DISPARITY, 0, img_size);
+        //cout<<"stereoRectify complete!"<<endl;
+
+        //存储四个映射矩阵
+        //cv::Mat M1l,M2l,M1r,M2r;
+        //根据相机内参,去畸变参数以及立体矫正后,得到的新的相机内参来计算从原始图像到处理后理想双目图像的映射矩阵
+        //这个函数的定义参考:[https://blog.csdn.net/u013341645/article/details/78710740]
+        // 左目
+        cv::initUndistortRectifyMap(            //计算无畸变和修正转换映射
+        K_l,                                //输入的相机内参矩阵 (单目标定阶段得到的相机内参矩阵)
+        D_l,                                //单目标定阶段得到的相机的去畸变参数
+        R_l,                                //可选的修正变换矩阵,3*3, 从 cv::stereoRectify 得来.如果这个矩阵为空矩阵,那么就将会被设置成为单位矩阵
+        P_l,//.rowRange(0,3).colRange(0,3),    //新的相机内参矩阵
+        cv::Size(cols_l,rows_l),            //在去畸变之前的图像尺寸
+        CV_32F,                             //第一个输出映射的类型
+        m_M1l,                                //第一个输出映射表
+        m_M2l);                               //第二个输出映射
+
+         cout<<"initUndistortRectifyMap complete!"<<endl;
+        // 右目
+        cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r,cv::Size(cols_r,rows_r),CV_32F,m_M1r,m_M2r);
+
+    //cerr << "read param success!" << endl;
+
+   
+
+    cout<<"ComputeRectfiedParam complete!"<<endl;
+
+    return 0;
+
+}
+
+
+int System::SaveGlobalCloud()
+{
+    bool bStopFlag = false;
+    unsigned long  nLoopKF = 0;
+    bool bRobust = true;
+    //Optimizer::GlobalBundleAdjustemnt(mpAtlas->GetCurrentMap(), 50, &bStopFlag,  nLoopKF, bRobust);
+
+    vector<KeyFrame *> vpKFs =  mpAtlas->GetCurrentMap()->GetAllKeyFrames();
+
+    for(auto pKF : vpKFs)
+                mpPointCloudMapping->insertKeyFrame(pKF);
+
+    return 0;
+}
+
 
 } //namespace ORB_SLAM
 

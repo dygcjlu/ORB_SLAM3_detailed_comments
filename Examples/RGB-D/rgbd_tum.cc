@@ -123,7 +123,8 @@ int main(int argc, char **argv)
         if(ttrack<T)
             usleep((T-ttrack)*1e6);
     }
-    sleep(10000000);
+    SLAM.SaveGlobalCloud();
+    sleep(60 * 10);
     // Stop all threads
     SLAM.Shutdown();
 

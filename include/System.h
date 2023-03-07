@@ -188,6 +188,13 @@ public:
 
     float GetImageScale();
 
+public:
+    int ComputeRectfiedParam(std::string strParamFile);
+    int SetRectfiedQ();
+    int SaveGlobalCloud();
+    cv::Mat m_M1l, m_M2l, m_M1r, m_M2r;
+    
+
 #ifdef REGISTER_TIMES
     void InsertRectTime(double& time);
     void InsertResizeTime(double& time);

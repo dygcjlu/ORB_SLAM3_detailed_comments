@@ -29,6 +29,8 @@
 #include <condition_variable>
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/statistical_outlier_removal.h>
+
+#include "StereoMatch.h"
 // using namespace ORB_SLAM3;
 
 namespace ORB_SLAM3
@@ -58,9 +60,14 @@ public:
 
     // 关于更新时的变量
     std::atomic<bool> mabIsUpdating;
+public:
+    int SetRectifiedQ(cv::Mat Q);
+
+    void SaveCameraPosition( std::list<KeyFrame *>& lNewKeyFrames);
 
 protected:
     void generatePointCloud(KeyFrame *kf);
+    void generatePointCloudStereo(KeyFrame *kf);
 
     std::list<KeyFrame *> mlNewKeyFrames;
     pcl::PointCloud<pcl::PointXYZRGBA>::Ptr globalMap;
@@ -88,6 +95,9 @@ protected:
     double thresh = 1;
     pcl::VoxelGrid<pcl::PointXYZRGBA> *voxel;
     pcl::StatisticalOutlierRemoval<pcl::PointXYZRGBA> *statistical_filter;
+
+    StereoMatch m_stereoMatch;
+    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr globalCameraMap;
 };
 }
 #endif // POINTCLOUDMAPPING_H

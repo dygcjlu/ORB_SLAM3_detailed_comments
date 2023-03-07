@@ -1,0 +1,136 @@
+
+
+{
+    //../Vocabulary/ORBvoc.txt ./Stereo/EuRoC.yaml "$pathDatasetEuroc"/MH02 ./Stereo/EuRoC_TimeStamps/MH02.txt dataset-MH02_stereo
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C++ Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/Stereo/stereo_euroc",
+            "args": ["/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Vocabulary/ORBvoc.txt", 
+                      "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/Stereo/custom_kitti.yaml", 
+                      "/mnt/96FC5C0CFC5BE551/dataset/kitti/for_slam_stereo",  
+                      "/mnt/96FC5C0CFC5BE551/dataset/kitti/for_slam_stereo/custom_data.txt",  "1"],
+            "environment": [{"name":"LD_LIBRARY_PATH", "value":"/media/xxd/Data2/3d/vtk/build/install/lib"}],
+            "cwd": "${workspaceFolder}",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
+/*
+
+{
+    //../Vocabulary/ORBvoc.txt ./Stereo/EuRoC.yaml "$pathDatasetEuroc"/MH02 ./Stereo/EuRoC_TimeStamps/MH02.txt dataset-MH02_stereo
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C++ Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/Stereo/stereo_euroc",
+            "args": ["/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Vocabulary/ORBvoc.txt", 
+                      "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/Stereo/custom.yaml", 
+                      "/media/xxd/Data2/datasets/3d/mine/0104/for_slam",  
+                      "/media/xxd/Data2/datasets/3d/mine/0104/for_slam/custom_data.txt",  "1"],
+            "environment": [{"name":"LD_LIBRARY_PATH", "value":"/media/xxd/Data2/3d/vtk/build/install/lib"}],
+            "cwd": "${workspaceFolder}",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}*/
+/*
+{
+    //../Vocabulary/ORBvoc.txt ./Stereo/EuRoC.yaml "$pathDatasetEuroc"/MH02 ./Stereo/EuRoC_TimeStamps/MH02.txt dataset-MH02_stereo
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C++ Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/Stereo/stereo_euroc",
+            "args": ["/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Vocabulary/ORBvoc.txt", 
+                      "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/Stereo/custom.yaml", 
+                      "/media/xxd/Data2/datasets/3d/mine/0105/stereo/2/for_slam",  
+                      "/media/xxd/Data2/datasets/3d/mine/0105/stereo/2/for_slam/custom_data.txt",  "1"],
+            "environment": [{"name":"LD_LIBRARY_PATH", "value":"/media/xxd/Data2/3d/vtk/build/install/lib"}],
+            "cwd": "${workspaceFolder}",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}*/
+/*
+
+{
+    //../Vocabulary/ORBvoc.txt ./Stereo/EuRoC.yaml "$pathDatasetEuroc"/MH02 ./Stereo/EuRoC_TimeStamps/MH02.txt dataset-MH02_stereo
+   
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C++ Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/RGB-D/rgbd_tum",
+            "args": ["/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Vocabulary/ORBvoc.txt", 
+                      "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/RGB-D/TUM3.yaml", 
+                      "/media/xxd/Data2/datasets/3d/TUM/rgbd_dataset_freiburg3_structure_texture_far", 
+                      "/media/xxd/Data2/datasets/3d/TUM/rgbd_dataset_freiburg3_structure_texture_far/associations.txt"],
+
+            "environment": [{"name":"LD_LIBRARY_PATH", "value":"/media/xxd/Data2/3d/vtk/build/install/lib"}],
+            "cwd": "${workspaceFolder}",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
+*/
+/*
+{
+    //../Vocabulary/ORBvoc.txt ./Stereo/EuRoC.yaml "$pathDatasetEuroc"/MH02 ./Stereo/EuRoC_TimeStamps/MH02.txt dataset-MH02_stereo
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C++ Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/Stereo/stereo_euroc",
+            "args": ["/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Vocabulary/ORBvoc.txt", 
+                      "/media/xxd/Data2/3d/stereo/mygithub/ORB_SLAM3_detailed_comments/Examples/Stereo/EuRoC.yaml", 
+                      "/media/xxd/Data2/datasets/3d/euroc/V1_01_easy",  
+                      "/media/xxd/Data2/3d/stereo/ORB_SLAM3_detailed_comments/Examples/Stereo/EuRoC_TimeStamps/V101.txt", "dataset-V101_stereo"],
+            "environment": [{"name":"LD_LIBRARY_PATH", "value":"/media/xxd/Data2/3d/vtk/build/install/lib"}],
+            "cwd": "${workspaceFolder}",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}*/

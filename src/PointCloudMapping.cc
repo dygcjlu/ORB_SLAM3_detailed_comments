@@ -22,6 +22,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/io/ply_io.h> 
+#include <pcl/point_types.h>
 #include "Converter.h"
 #include "System.h"
 
@@ -42,8 +44,12 @@ PointCloudMapping::PointCloudMapping(double resolution_, double meank_, double t
     statistical_filter->setStddevMulThresh(thresh);
     voxel->setLeafSize(resolution, resolution, resolution);
     globalMap = pcl::PointCloud<pcl::PointXYZRGBA>::Ptr(new pcl::PointCloud<pcl::PointXYZRGBA>);
+    globalCameraMap = pcl::PointCloud<pcl::PointXYZRGBA>::Ptr(new pcl::PointCloud<pcl::PointXYZRGBA>);
 
     viewerThread = make_shared<thread>(bind(&PointCloudMapping::viewer, this));
+
+
+    m_stereoMatch.Init();
 }
 
 void PointCloudMapping::shutdown()
@@ -81,12 +87,21 @@ void PointCloudMapping::insertKeyFrame(KeyFrame *kf, cv::Mat &color, cv::Mat &de
 
 void PointCloudMapping::insertKeyFrame(KeyFrame *kf)
 {
-    // cout << "receive a keyframe, 第" << kf->mnId << "个" << endl;
+    cout << "receive a keyframe, 第" << kf->mnId << "个" << endl;
     if (kf->imLeftRgb.empty())
+    {
+        cout<<"kf->imLeftRgb.empty()"<< endl;
         return;
+    }
+    if(kf->isBad())
+    {
+        cout<<"this frame is bad!"<<endl;
+        return;
+    }
+        
     unique_lock<mutex> lck(keyframeMutex);
     mlNewKeyFrames.emplace_back(kf);
-    if(mlNewKeyFrames.size() > 35)
+    if(mlNewKeyFrames.size() > 200)
         mlNewKeyFrames.pop_front();
 
 }
@@ -101,7 +116,11 @@ void PointCloudMapping::generatePointCloud(KeyFrame *kf) //,Eigen::Isometry3d T
         {
             float d = kf->imDepth.ptr<float>(m)[n];
             if (d < 0.05 || d > 6)
+            {
+                //cout<<"depth is not valid:"<<d << endl;
                 continue;
+            }
+                
             pcl::PointXYZRGBA p;
             p.z = d;
             p.x = (n - kf->cx) * p.z / kf->fx;
@@ -120,9 +139,102 @@ void PointCloudMapping::generatePointCloud(KeyFrame *kf) //,Eigen::Isometry3d T
     kf->mptrPointCloud = pPointCloud;
 }
 
+
+void PointCloudMapping::generatePointCloudStereo(KeyFrame *kf) //,Eigen::Isometry3d T
+{
+    if(kf->imLeftRgb.channels() == 1)
+    {
+        cv::cvtColor(kf->imLeftRgb, kf->imLeftRgb, cv::COLOR_GRAY2BGR);
+        cv::cvtColor(kf->imRightRgb, kf->imRightRgb, cv::COLOR_GRAY2BGR);
+    }
+
+    m_stereoMatch.ComputeDepthMap(kf->imLeftRgb, kf->imRightRgb, kf->imDepth);
+
+    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr pPointCloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
+    //pcl::PointCloud<pcl::PointXYZRGB>::Ptr pPointCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    // point cloud is null ptr
+    for (int m = 0; m < kf->imDepth.rows; m += 4)
+    {
+        for (int n = 0; n < kf->imDepth.cols; n += 4)
+        {
+            if((m<20) || (m>kf->imDepth.rows-20))
+            {
+                //skip black border
+                continue;
+            }
+
+            pcl::PointXYZRGBA p;
+            
+            cv::Vec3f xyzPixel = kf->imDepth.at<cv::Vec3f>(m, n);
+            cv::Vec3b bgrPixel = kf->imLeftRgb.at<cv::Vec3b>(m, n);
+            p.x = xyzPixel.val[0];
+            p.y = xyzPixel.val[1];
+            p.z = xyzPixel.val[2];
+            if(p.z > 500 )
+            {
+                //std::cout<<p.z<<std::endl;
+                continue;
+            }
+            //std::cout<<"  "<<p.z;//<<std::endl;
+                
+            if(p.z < 1)
+            {
+                //std::cout<<"p.z < 1 "<<std::endl;
+                continue;
+            }   
+            p.b = bgrPixel.val[0];
+            p.g = bgrPixel.val[1];
+            p.r = bgrPixel.val[2];
+        
+        
+            pPointCloud->points.push_back(p);
+        }
+    }
+    pPointCloud->height = 1;
+    pPointCloud->width = pPointCloud->points.size();
+    pPointCloud->is_dense = true;
+    kf->mptrPointCloud = pPointCloud;
+
+    std::cout<<"point size :"<<pPointCloud->points.size()<<std::endl;
+}
+
+void PointCloudMapping::SaveCameraPosition( std::list<KeyFrame *>& lNewKeyFrames)
+{
+     for (auto pKF : lNewKeyFrames)
+    {
+        Eigen::Vector3f Ow2 = pKF->GetCameraCenter();
+
+        pcl::PointXYZRGBA p;
+            
+            
+        p.x = Ow2(0);
+        p.y = Ow2(1);
+        p.z = Ow2(2);
+            
+        p.b = 127;
+        p.g = 127;
+        p.r = 127;
+
+        globalCameraMap->points.push_back(p);
+    }
+
+    globalCameraMap->height = 1;
+    globalCameraMap->width = globalCameraMap->points.size();
+    globalCameraMap->is_dense = false;
+    std::string strSavePath = "/media/xxd/Data2/datasets/3d/za/";
+
+    std::string strSaveName = strSavePath + "camera_position.ply";
+    pcl::PLYWriter writer;
+	writer.write(strSaveName, *globalCameraMap);
+    std::cout<<"save camera position"<<std::endl;
+
+
+}
+
 void PointCloudMapping::viewer()
 {
     pcl::visualization::CloudViewer viewer("viewer");
+    int nKFCount = 0;
     // KeyFrame * pCurKF;
     while (1)
     {
@@ -154,16 +266,27 @@ void PointCloudMapping::viewer()
             }
 
         }
+
+        SaveCameraPosition(lNewKeyFrames);
+        
         // timeval start, finish; //定义开始，结束变量
         //初始化
         // cout<<"待处理点云个数 = "<<N<<endl;
         double generatePointCloudTime = 0, transformPointCloudTime = 0; 
         for (auto pKF : lNewKeyFrames)
         {
+            nKFCount++;
             if (pKF->isBad())
                 continue;
             // gettimeofday(&start,NULL);
-            generatePointCloud(pKF);
+            if(pKF->imRightRgb.empty())
+            {
+                generatePointCloud(pKF);
+            }else
+            {
+                generatePointCloudStereo(pKF);
+            }
+            
             // gettimeofday(&finish,NULL);//初始化结束时间
             // generatePointCloudTime += finish.tv_sec - start.tv_sec + (finish.tv_usec - start.tv_usec)/1000000.0;
 
@@ -177,6 +300,17 @@ void PointCloudMapping::viewer()
             }
             // gettimeofday(&finish,NULL);//初始化结束时间
             // transformPointCloudTime += finish.tv_sec - start.tv_sec + (finish.tv_usec - start.tv_usec)/1000000.0;
+
+            if(nKFCount%10 == 0)
+            {
+                std::string strSavePath = "/media/xxd/Data2/datasets/3d/za/";
+
+                std::string strSaveName = strSavePath + std::to_string(nKFCount) + "_global.ply";
+                pcl::PLYWriter writer;
+	            writer.write(strSaveName, *globalMap);
+                std::cout<<"save global pcl cloud, nKFCount:"<<nKFCount<<std::endl;
+  
+            }
         }
         // gettimeofday(&start,NULL);
         pcl::PointCloud<pcl::PointXYZRGBA>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZRGBA>);
@@ -198,6 +332,9 @@ void PointCloudMapping::viewer()
         // gettimeofday(&finish,NULL);//初始化结束时间
         // double duration = finish.tv_sec - start.tv_sec + (finish.tv_usec - start.tv_usec)/1000000.0;//转换浮点型
         // std::cout<<"showCloud: "<<duration<<std::endl;
+       
+        
+        
     }
 }
 
@@ -246,4 +383,13 @@ void PointCloudMapping::updatecloud(Map &curMap)
     }
     mabIsUpdating = false;
 }
+
+int PointCloudMapping::SetRectifiedQ(cv::Mat Q)
+{
+    m_stereoMatch.SetQ(Q);
+    return 0;
+}
+
+
+
 }

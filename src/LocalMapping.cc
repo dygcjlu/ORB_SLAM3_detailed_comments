@@ -317,8 +317,10 @@ void LocalMapping::Run()
 #endif
             // Step 10 将当前帧加入到闭环检测队列中
             mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
+            /* deng log
             for(auto pKF : mlNewKeyFrameForDenseMap)
                 mpPointCloudMapping->insertKeyFrame(pKF);
+                */
 
 #ifdef REGISTER_TIMES
             std::chrono::steady_clock::time_point time_EndLocalMap = std::chrono::steady_clock::now();

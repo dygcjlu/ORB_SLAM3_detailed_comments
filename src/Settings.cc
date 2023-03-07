@@ -325,6 +325,7 @@ void Settings::readCamera2(cv::FileStorage &fSettings)
     if (cameraType_ == PinHole)
     {
         bNeedToRectify_ = true;
+        std::cout<<"bNeedToRectify_"<<std::endl;
 
         // Read intrinsic parameters
         float fx = readParameter<float>(fSettings, "Camera2.fx", found);
@@ -562,11 +563,12 @@ void Settings::precomputeRectificationMaps()
     t12.convertTo(t12, CV_64F);
 
     cv::Mat R_r1_u1, R_r2_u2;
-    cv::Mat P1, P2, Q;
+    cv::Mat P1, P2; 
+    //cv::Mat Q;
 
     cv::stereoRectify(K1, camera1DistortionCoef(), K2, camera2DistortionCoef(), newImSize_,
                         R12, t12,
-                        R_r1_u1, R_r2_u2, P1, P2, Q,
+                        R_r1_u1, R_r2_u2, P1, P2, m_Q,
                         cv::CALIB_ZERO_DISPARITY, -1, newImSize_);
     cv::initUndistortRectifyMap(K1, camera1DistortionCoef(), R_r1_u1, P1.rowRange(0, 3).colRange(0, 3),
                                 newImSize_, CV_32F, M1l_, M2l_);

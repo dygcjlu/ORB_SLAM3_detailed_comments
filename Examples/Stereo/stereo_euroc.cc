@@ -165,6 +165,12 @@ int main(int argc, char **argv)
         }
 
     }
+    
+    SLAM.SaveGlobalCloud();
+    sleep(60 * 10);
+    cout << "SaveGlobalCloud complete" << endl;
+    
+
     // Stop all threads
     SLAM.Shutdown();
 
